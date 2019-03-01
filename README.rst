@@ -97,9 +97,13 @@ Running tests
 
 SageMaker Python SDK has unit tests and integration tests.
 
+You can install the libraries needed to run the tests by running :code:`pip install --upgrade .[test]` or, for Zsh users: :code:`pip install --upgrade .\[test\]`
+
 **Unit tests**
 
-tox is a prerequisite for running unit tests so you need to make sure you have it installed. To run the unit tests:
+To run the unit tests, you'll need to have interpreters for Python 2.7 and Python 3.5 installed.
+
+To run the unit tests with tox, run:
 
 ::
 
@@ -112,20 +116,21 @@ To run the integration tests, the following prerequisites must be met
 1. Access to an AWS account to run the tests on
 2. AWS account credentials available to boto3 clients used in the tests
 3. The AWS account has an IAM role named :code:`SageMakerRole`
-4. The libraries listed in the ``extras_require`` object in ``setup.py`` for ``test`` are installed.
-   You can do this by running the following command: :code:`pip install --upgrade .[test]`
 
-You can run integ tests by issuing the following command:
+We recommend selectively running just those integration tests you'd like to run. You can filter by individual test function names with:
+
+::
+
+    pytest -k 'test_i_care_about'
+
+
+You can also run all of the integration tests by running the following command, but they run sequentially, so they'll take a long time to finish:
 
 ::
 
     pytest tests/integ
 
-You can also filter by individual test function names (usable with any of the previous commands):
 
-::
-
-    pytest -k 'test_i_care_about'
 
 Building Sphinx docs
 ~~~~~~~~~~~~~~~~~~~~

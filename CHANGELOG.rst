@@ -6,6 +6,7 @@ CHANGELOG
 ==========
 
 * doc-fix: update information about saving models in the MXNet README
+* doc-fix: Improve new developer experience in README
 
 1.18.2
 ======
