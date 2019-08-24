@@ -583,6 +583,9 @@ def test_tuning_mxnet(sagemaker_session, mxnet_full_version, cpu_instance_type):
         tuner.wait()
 
     best_training_job = tuner.best_training_job()
+    job_desc = tuner.tuning_jobs[-1].describe()
+    assert job_desc is not None
+
     with timeout_and_delete_endpoint_by_name(best_training_job, sagemaker_session):
         predictor = tuner.deploy(1, cpu_instance_type)
         data = np.zeros(shape=(1, 1, 28, 28))
@@ -862,6 +865,9 @@ def test_attach_tuning_pytorch(sagemaker_session, cpu_instance_type):
     attached_tuner = HyperparameterTuner.attach(
         tuning_job_name, sagemaker_session=sagemaker_session
     )
+    job_desc = attached_tuner.training_jobs[-1].describe()
+    assert job_desc is not None
+
     assert attached_tuner.early_stopping_type == "Auto"
 
     with timeout_and_delete_endpoint_by_name(endpoint_name, sagemaker_session):

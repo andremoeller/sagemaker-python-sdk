@@ -83,9 +83,8 @@ def test_transform_mxnet(sagemaker_session, mxnet_full_version, cpu_instance_typ
     ):
         transformer.wait()
 
-    job_desc = transformer.sagemaker_session.sagemaker_client.describe_transform_job(
-        TransformJobName=transformer.latest_transform_job.name
-    )
+    job_desc = transformer.transform_jobs[-1].describe()
+
     assert kms_key_arn == job_desc["TransformResources"]["VolumeKmsKeyId"]
     assert output_filter == job_desc["DataProcessing"]["OutputFilter"]
     assert input_filter == job_desc["DataProcessing"]["InputFilter"]
@@ -137,6 +136,9 @@ def test_attach_transform_kmeans(sagemaker_session, cpu_instance_type):
     attached_transformer = Transformer.attach(
         transformer.latest_transform_job.name, sagemaker_session=sagemaker_session
     )
+    job_desc = attached_transformer.training_jobs[-1].describe()
+    assert job_desc is not None
+
     with timeout_and_delete_model_with_transformer(
         transformer, sagemaker_session, minutes=TRANSFORM_DEFAULT_TIMEOUT_MINUTES
     ):

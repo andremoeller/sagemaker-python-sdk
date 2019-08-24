@@ -85,6 +85,9 @@ def test_byo_estimator(sagemaker_session, region, cpu_instance_type):
         # training labels must be 'float32'
         estimator.fit({"train": s3_train_data}, job_name=job_name)
 
+        job_desc = estimator.training_jobs[-1].describe()
+        assert job_desc is not None
+
     with timeout_and_delete_endpoint_by_name(job_name, sagemaker_session):
         model = estimator.create_model()
         predictor = model.deploy(1, cpu_instance_type, endpoint_name=job_name)
@@ -138,6 +141,9 @@ def test_async_byo_estimator(sagemaker_session, region, cpu_instance_type):
         estimator = Estimator.attach(
             training_job_name=job_name, sagemaker_session=sagemaker_session
         )
+        job_desc = estimator.training_jobs[-1].describe()
+        assert job_desc is not None
+        
         model = estimator.create_model()
         predictor = model.deploy(1, cpu_instance_type, endpoint_name=endpoint_name)
         predictor.serializer = fm_serializer
