@@ -908,6 +908,36 @@ PRIMARY_CONTAINER = {
 }
 
 
+def test_describe_training_job(sagemaker_session):
+    training_job_desc = {"TrainingJobName": JOB_NAME}
+    sagemaker_session.sagemaker_client.describe_training_job = Mock(
+        name="describe_training_job", return_value=training_job_desc
+    )
+
+    result = sagemaker_session.describe_training_job(JOB_NAME)
+    assert result is training_job_desc
+
+
+def test_describe_hyper_parameter_tuning_job(sagemaker_session):
+    tuning_job_desc = {"HyperParameterTuningJobName": JOB_NAME}
+    sagemaker_session.sagemaker_client.describe_hyper_parameter_tuning_job = Mock(
+        name="describe_hyper_parameter_tuning_job", return_value=tuning_job_desc
+    )
+
+    result = sagemaker_session.describe_hyper_parameter_tuning_job(JOB_NAME)
+    assert result is tuning_job_desc
+
+
+def test_describe_transform_job(sagemaker_session):
+    transform_job_desc = {"TransformJobName": JOB_NAME}
+    sagemaker_session.sagemaker_client.describe_transform_job = Mock(
+        name="describe_transform_job", return_value=transform_job_desc
+    )
+
+    result = sagemaker_session.describe_transform_job(JOB_NAME)
+    assert result is transform_job_desc
+
+
 @patch("sagemaker.session._expand_container_def", return_value=PRIMARY_CONTAINER)
 def test_create_model(expand_container_def, sagemaker_session):
     model = sagemaker_session.create_model(MODEL_NAME, ROLE, PRIMARY_CONTAINER)

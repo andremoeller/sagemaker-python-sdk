@@ -329,5 +329,18 @@ class _Job(object):
 
     @property
     def name(self):
-        """Placeholder docstring"""
+        """Returns the name of the job.
+
+        Returns:
+            str: The name of the job.
+
+        """
         return self.job_name
+
+    @abstractmethod
+    def describe(self):
+        """Call's the job's 'Describe' and returns a dictionary containing the job's description.
+
+        Returns:
+            dict: Dictionary containing the job's description.
+        """

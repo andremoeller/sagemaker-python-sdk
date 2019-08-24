@@ -1505,6 +1505,44 @@ class Session(object):  # pylint: disable=too-many-public-methods
                     saving = (1 - float(billable_time) / training_time) * 100
                     print("Managed Spot Training savings: {:.1f}%".format(saving))
 
+    def describe_training_job(self, training_job_name):
+        """Describes a training job.
+
+        Args:
+            training_job_name (str): The name of a training job.
+
+        Returns:
+            dict: A dictionary containing the training job description.
+
+        """
+        return self.sagemaker_client.describe_training_job(TrainingJobName=training_job_name)
+
+    def describe_hyper_parameter_tuning_job(self, tuning_job_name):
+        """Describes a hyperparameter tuning job.
+
+        Args:
+            tuning_job_name (str): The name of a hyper parameter tuning job.
+
+        Returns:
+            dict: A dictionary containing the hyper parameter tuning job description.
+
+        """
+        return self.sagemaker_client.describe_hyper_parameter_tuning_job(
+            HyperParameterTuningJobName=tuning_job_name
+        )
+
+    def describe_transform_job(self, transform_job_name):
+        """Describes a transform job.
+
+        Args:
+            transform_job_name (str): The name of a hyper parameter tuning job.
+
+        Returns:
+            dict: A dictionary containing the transform job description.
+
+        """
+        return self.sagemaker_client.describe_transform_job(TransformJobName=transform_job_name)
+
 
 def container_def(image, model_data_url=None, env=None):
     """Create a definition for executing a container as part of a SageMaker model.

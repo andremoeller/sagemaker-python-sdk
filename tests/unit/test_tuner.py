@@ -399,6 +399,7 @@ def test_attach_tuning_job_with_estimator_from_hyperparameters(sagemaker_session
     tuner = HyperparameterTuner.attach(JOB_NAME, sagemaker_session=sagemaker_session)
 
     assert tuner.latest_tuning_job.name == JOB_NAME
+    assert tuner.tuning_jobs[0].name == JOB_NAME
     assert tuner.objective_metric_name == OBJECTIVE_METRIC_NAME
     assert tuner.max_jobs == 1
     assert tuner.max_parallel_jobs == 1
@@ -430,6 +431,7 @@ def test_attach_tuning_job_with_estimator_from_hyperparameters_with_early_stoppi
     tuner = HyperparameterTuner.attach(JOB_NAME, sagemaker_session=sagemaker_session)
 
     assert tuner.latest_tuning_job.name == JOB_NAME
+    assert tuner.tuning_jobs[0].name == JOB_NAME
     assert tuner.early_stopping_type == "Auto"
 
     assert isinstance(tuner.estimator, PCA)
@@ -665,6 +667,14 @@ def test_wait(tuner):
     tuner.estimator.sagemaker_session.wait_for_tuning_job.assert_called_once_with(JOB_NAME)
 
 
+def test_describe(sagemaker_session):
+    tuning_job = _TuningJob(sagemaker_session, JOB_NAME)
+
+    tuning_job.describe()
+
+    sagemaker_session.describe_hyper_parameter_tuning_job.assert_called_with(JOB_NAME)
+
+
 def test_delete_endpoint(tuner):
     tuner.latest_tuning_job = _TuningJob(tuner.estimator.sagemaker_session, JOB_NAME)
 
@@ -693,6 +703,8 @@ def test_fit_no_inputs(tuner, sagemaker_session):
     _, _, tune_kwargs = sagemaker_session.tune.mock_calls[0]
 
     assert tune_kwargs["input_config"] is None
+    assert tuner.latest_tuning_job is not None
+    assert len(tuner.tuning_jobs) > 0
 
 
 def test_identical_dataset_and_algorithm_tuner(sagemaker_session):

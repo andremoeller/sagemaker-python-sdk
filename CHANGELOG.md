@@ -5,6 +5,8 @@
 ### Features
 
  * support training inputs from EFS and FSx
+ * Add Estimator.training_jobs, HyperparameterTuner.tuning_jobs, and Transformer.tuning_jobs
+ * Add describe method to jobs to get job descriptions.
 
 ## v1.37.2 (2019-08-20)
 

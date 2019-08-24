@@ -254,6 +254,14 @@ def test_wait(ensure_last_transform_job, transformer):
     assert transformer.latest_transform_job.wait.called_once
 
 
+def test_describe(sagemaker_session):
+    transform_job = _TransformJob(sagemaker_session, JOB_NAME)
+
+    transform_job.describe()
+
+    sagemaker_session.describe_transform_job.assert_called_with(JOB_NAME)
+
+
 def test_ensure_last_transform_job_exists(transformer, sagemaker_session):
     transformer.latest_transform_job = _TransformJob(sagemaker_session, "some-transform-job")
     transformer._ensure_last_transform_job()
@@ -277,6 +285,7 @@ def test_attach(prepare_init_params, transformer, sagemaker_session):
 
     assert prepare_init_params.called_once
     assert attached.latest_transform_job.job_name == JOB_NAME
+    assert attached.transform_jobs[0].job_name == JOB_NAME
     assert attached.model_name == MODEL_NAME
     assert attached.instance_count == INSTANCE_COUNT
     assert attached.instance_type == INSTANCE_TYPE

@@ -23,6 +23,28 @@ from sagemaker.utils import base_name_from_image, name_from_base
 class Transformer(object):
     """A class for handling creating and interacting with Amazon SageMaker
     transform jobs.
+
+    Examples:
+    Run a job, get it name and description, then wait for it to terminate.
+    >>> transformer = Transformer(model_name="MyModelName",
+    >>>                         image_name='012345678901.dkr.ecr.us-west-2.amazonaws.com/train-image:latest',
+    >>>                         train_instance_count=1,
+    >>>                         train_instance_type='ml.m5.xlarge')
+    >>> transformer.transform('s3://bucket/path/to/transform/input/data')
+    >>> job = transformer.latest_transform_job
+    >>> job_name = job.name
+    >>> print(job_name)
+    >>> job_description = job.describe()
+    >>> print(job_description)
+    >>> job.wait()
+
+    Run two jobs, then wait for them both to terminate, then describe them when they're done.
+    >>> transformer.transform('s3://bucket/path/to/transform/input/data')
+    >>> transformer.transform('s3://bucket/path/to/transform/input/data')
+    >>> for job in transformer.transform_jobs:
+    >>>    job.wait()
+    >>> for job in transformer.transform_jobs:
+    >>>    print(job.describe())
     """
 
     def __init__(
@@ -103,6 +125,7 @@ class Transformer(object):
         self.base_transform_job_name = base_transform_job_name
         self._current_job_name = None
         self.latest_transform_job = None
+        self.transform_jobs = []
         self._reset_output_path = False
 
         self.sagemaker_session = sagemaker_session or Session()
@@ -174,7 +197,7 @@ class Transformer(object):
             )
             self._reset_output_path = True
 
-        self.latest_transform_job = _TransformJob.start_new(
+        transform_job = _TransformJob.start_new(
             self,
             data,
             data_type,
@@ -185,6 +208,8 @@ class Transformer(object):
             output_filter,
             join_source,
         )
+        self.latest_transform_job = transform_job
+        self.transform_jobs.append(transform_job)
 
     def delete_model(self):
         """Delete the corresponding SageMaker model for this Transformer."""
@@ -255,9 +280,11 @@ class Transformer(object):
         )
         init_params = cls._prepare_init_params_from_job_description(job_details)
         transformer = cls(sagemaker_session=sagemaker_session, **init_params)
-        transformer.latest_transform_job = _TransformJob(
+        transform_job = _TransformJob(
             sagemaker_session=sagemaker_session, job_name=init_params["base_transform_job_name"]
         )
+        transformer.latest_transform_job = transform_job
+        transformer.transform_jobs = [transform_job]
 
         return transformer
 
@@ -292,7 +319,7 @@ class Transformer(object):
 
 
 class _TransformJob(_Job):
-    """Placeholder docstring"""
+    """Class representation of a transform job."""
 
     @classmethod
     def start_new(
@@ -343,7 +370,17 @@ class _TransformJob(_Job):
         return cls(transformer.sagemaker_session, transformer._current_job_name)
 
     def wait(self):
+        """ Waits for the transform job to terminate."""
         self.sagemaker_session.wait_for_transform_job(self.job_name)
+
+    def describe(self):
+        """Calls DescribeTransformJob and returns a dictionary containing the described transform
+        job.
+
+        Returns:
+        dict: Dictionary containing the transform job description.
+        """
+        return self.sagemaker_session.describe_transform_job(self.name)
 
     @staticmethod
     def _load_config(data, data_type, content_type, compression_type, split_type, transformer):

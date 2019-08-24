@@ -216,6 +216,7 @@ class EstimatorBase(with_metaclass(ABCMeta, object)):
         self.output_path = output_path
         self.output_kms_key = output_kms_key
         self.latest_training_job = None
+        self.training_jobs = []
         self.deploy_instance_type = None
 
         self._compiled_models = {}
@@ -326,7 +327,9 @@ class EstimatorBase(with_metaclass(ABCMeta, object)):
         """
         self._prepare_for_training(job_name=job_name)
 
-        self.latest_training_job = _TrainingJob.start_new(self, inputs)
+        training_job = _TrainingJob.start_new(self, inputs)
+        self.latest_training_job = training_job
+        self.training_jobs.append(training_job)
         if wait:
             self.latest_training_job.wait(logs=logs)
 
@@ -454,9 +457,11 @@ class EstimatorBase(with_metaclass(ABCMeta, object)):
         init_params.update(tags=tags)
 
         estimator = cls(sagemaker_session=sagemaker_session, **init_params)
-        estimator.latest_training_job = _TrainingJob(
+        training_job = _TrainingJob(
             sagemaker_session=sagemaker_session, job_name=init_params["base_job_name"]
         )
+        estimator.latest_training_job = training_job
+        estimator.training_jobs = [training_job]
         estimator._current_job_name = estimator.latest_training_job.name
         estimator.latest_training_job.wait()
         return estimator
@@ -767,7 +772,7 @@ class EstimatorBase(with_metaclass(ABCMeta, object)):
 
 
 class _TrainingJob(_Job):
-    """Placeholder docstring"""
+    """Class representation of a training job."""
 
     @classmethod
     def start_new(cls, estimator, inputs):
@@ -863,19 +868,49 @@ class _TrainingJob(_Job):
         return isinstance(input_uri, string_types) and input_uri.startswith("file://")
 
     def wait(self, logs=True):
-        """
+        """ Waits for the training job to terminate.
         Args:
-            logs:
+            logs (bool): whether to stream logs for the job while waiting.
         """
         if logs:
             self.sagemaker_session.logs_for_job(self.job_name, wait=True)
         else:
             self.sagemaker_session.wait_for_job(self.job_name)
 
+    def describe(self):
+        """Calls DescribeTrainingJob and returns a dictionary containing the described training job.
+
+        Returns:
+            dict: Dictionary containing the training job description.
+        """
+        return self.sagemaker_session.describe_training_job(self.job_name)
+
 
 class Estimator(EstimatorBase):
     """A generic Estimator to train using any supplied algorithm. This class is
     designed for use with algorithms that don't have their own, custom class.
+
+    Example:
+        Run a job, get the job's name and description, then wait for the job to terminate.
+
+        >>> estimator = Estimator(role='arn:aws:iam::038453126632:role/SageMakerRole',
+        >>>                       image_name='012345678901.dkr.ecr.us-west-2.amazonaws.com/train-image:latest',
+        >>>                       train_instance_count=1,
+        >>>                       train_instance_type='ml.m5.xlarge')
+        >>> estimator.fit({'train': 's3://path/to/training/data'}, wait=False)
+        >>> job = estimator.latest_training_job
+        >>> job_name = job.name
+        >>> job_description = job.describe()
+        >>> job.wait(logs=True)
+
+    Example:
+        Run two jobs, then wait for them both to terminate, then describe them when they're done.
+
+        >>> estimator.fit({'train': 's3://path/to/training/data'}, wait=False)
+        >>> estimator.fit({'train': 's3://path/to/other/training/data'}, wait=False)
+        >>> for job in estimator.training_jobs:
+        >>>    job.wait(logs=False)
+        >>> job_descriptions = [job.describe() for job in estimator.training_jobs]
     """
 
     def __init__(

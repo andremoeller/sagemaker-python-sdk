@@ -668,6 +668,7 @@ def test_attach_framework(sagemaker_session):
     )
     assert framework_estimator._current_job_name == "neo"
     assert framework_estimator.latest_training_job.job_name == "neo"
+    assert framework_estimator.training_jobs[0].job_name == "neo"
     assert framework_estimator.role == "arn:aws:iam::366:role/SageMakerRole"
     assert framework_estimator.train_instance_count == 1
     assert framework_estimator.train_max_run == 24 * 60 * 60
@@ -711,6 +712,7 @@ def test_attach_framework_with_tuning(sagemaker_session):
         training_job_name="neo", sagemaker_session=sagemaker_session
     )
     assert framework_estimator.latest_training_job.job_name == "neo"
+    assert framework_estimator.training_jobs[0].job_name == "neo"
     assert framework_estimator.role == "arn:aws:iam::366:role/SageMakerRole"
     assert framework_estimator.train_instance_count == 1
     assert framework_estimator.train_max_run == 24 * 60 * 60
@@ -786,6 +788,7 @@ def test_fit_verify_job_name(strftime, sagemaker_session):
     assert train_kwargs["job_name"] == JOB_NAME
     assert train_kwargs["encrypt_inter_container_traffic"] is True
     assert fw.latest_training_job.name == JOB_NAME
+    assert fw.training_jobs[0].name == JOB_NAME
 
 
 def test_prepare_for_training_unique_job_name_generation(sagemaker_session):
@@ -1601,6 +1604,14 @@ def test_wait_with_logs(sagemaker_session):
 
     sagemaker_session.logs_for_job.assert_called_once()
     assert not sagemaker_session.wait_for_job.called
+
+
+def test_describe(sagemaker_session):
+    training_job = _TrainingJob(sagemaker_session, JOB_NAME)
+
+    training_job.describe()
+
+    sagemaker_session.describe_training_job.assert_called_with(JOB_NAME)
 
 
 def test_unsupported_type_in_dict():

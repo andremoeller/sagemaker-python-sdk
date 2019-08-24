@@ -181,6 +181,31 @@ class WarmStartConfig(object):
 class HyperparameterTuner(object):
     """A class for creating and interacting with Amazon SageMaker hyperparameter
     tuning jobs, as well as deploying the resulting model(s).
+
+    Examples:
+        Run a job, get the job's name and description, then wait for the job to terminate.
+        >>> tuner = HyperparameterTuner(estimator=my_estimator,
+        >>>                             objective_metric_name='validation:auc',
+        >>>                             hyperparameter_ranges={
+        >>>                                 'alpha': ContinuousParameter(
+        >>>                                     0.01, 10, scaling_type="Logarithmic"
+        >>>                                 )
+        >>>                             })
+        >>> tuner.fit({'train': 's3://path/to/training/data'}, wait=False)
+        >>> job = tuner.latest_tuning_job
+        >>> job_name = job.name
+        >>> print(job_name)
+        >>> job_description = job.describe()
+        >>> print(job_description)
+        >>> job.wait()
+
+        Run two jobs, then wait for them both to terminate, then describe them when they're done.
+        >>> tuner.fit({'train': 's3://path/to/training/data'}, wait=False)
+        >>> tuner.fit({'train': 's3://path/to/other/training/data'}, wait=False)
+        >>> for job in tuner.tuning_jobs:
+        >>>    job.wait()
+        >>> for job in tuner.tuning_jobs:
+        >>>    print(job.describe())
     """
 
     TUNING_JOB_NAME_MAX_LENGTH = 32
@@ -274,6 +299,7 @@ class HyperparameterTuner(object):
         self.base_tuning_job_name = base_tuning_job_name
         self._current_job_name = None
         self.latest_tuning_job = None
+        self.tuning_jobs = []
         self.warm_start_config = warm_start_config
         self.early_stopping_type = early_stopping_type
         self.static_hyperparameters = None
@@ -359,7 +385,9 @@ class HyperparameterTuner(object):
             self.estimator._prepare_for_training(job_name)
 
         self._prepare_for_training(job_name=job_name, include_cls_metadata=include_cls_metadata)
-        self.latest_tuning_job = _TuningJob.start_new(self, inputs)
+        tuning_job = _TuningJob.start_new(self, inputs)
+        self.latest_tuning_job = tuning_job
+        self.tuning_jobs.append(tuning_job)
 
     @classmethod
     def attach(cls, tuning_job_name, sagemaker_session=None, job_details=None, estimator_cls=None):
@@ -415,9 +443,9 @@ class HyperparameterTuner(object):
         init_params = cls._prepare_init_params_from_job_description(job_details)
 
         tuner = cls(estimator=estimator, **init_params)
-        tuner.latest_tuning_job = _TuningJob(
-            sagemaker_session=sagemaker_session, job_name=tuning_job_name
-        )
+        tuning_job = _TuningJob(sagemaker_session=sagemaker_session, job_name=tuning_job_name)
+        tuner.latest_tuning_job = tuning_job
+        tuner.tuning_jobs = [tuning_job]
 
         return tuner
 
@@ -833,7 +861,7 @@ class HyperparameterTuner(object):
 
 
 class _TuningJob(_Job):
-    """Placeholder docstring"""
+    """Class representation of a tuning job."""
 
     @classmethod
     def start_new(cls, tuner, inputs):
@@ -899,8 +927,20 @@ class _TuningJob(_Job):
         self.sagemaker_session.stop_tuning_job(name=self.name)
 
     def wait(self):
-        """Placeholder docstring"""
+        """ Waits for the tuning job to terminate.
+        Args:
+            logs (bool): whether to stream logs for the job while waiting.
+        """
         self.sagemaker_session.wait_for_tuning_job(self.name)
+
+    def describe(self):
+        """Calls DescribeHyperParameterTuningJob and returns a dictionary containing the described
+         tuning job.
+
+        Returns:
+            dict: Dictionary containing the tuning job description.
+        """
+        return self.sagemaker_session.describe_hyper_parameter_tuning_job(self.name)
 
 
 def create_identical_dataset_and_algorithm_tuner(
